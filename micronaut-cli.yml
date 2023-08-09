@@ -1,0 +1,6 @@
+applicationType: default
+defaultPackage: krystian.kryszczak
+testFramework: kotest
+sourceLanguage: kotlin
+buildTool: gradle
+features: [annotation-api, app-name, cassandra, crac, elasticsearch, github-workflow-ci, github-workflow-docker-registry, graalvm, gradle, http-client-test, jackson-databind, kapt, kotest, kotlin, kotlin-application, logback, micronaut-aot, micronaut-build, micronaut-test-rest-assured, netty-server, readme, rxjava3, rxjava3-http-client, security-annotations, security-jwt, serialization-jackson, shade, testcontainers, yaml, yaml-build]

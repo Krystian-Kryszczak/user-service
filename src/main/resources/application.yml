@@ -1,0 +1,28 @@
+micronaut:
+  application:
+    name: user
+  security:
+    authentication: bearer
+    token:
+      jwt:
+        signatures:
+          secret:
+            generator:
+              secret: ${JWT_GENERATOR_SIGNATURE_SECRET}
+              base64: true
+              jws-algorithm: HS256
+cassandra:
+  default:
+    advanced:
+      ssl: false
+      ssl-engine-factory: DefaultSslEngineFactory
+      metadata:
+        schema:
+          enabled: true
+    basic:
+      contact-points:
+        - ${CASSANDRA_HOST:127.0.0.1}:${CASSANDRA_PORT:9042}
+      load-balancing-policy:
+        local-datacenter: ${CASSANDRA_DATA_CENTER:datacenter1}
+      session-keyspace: app
+elasticsearch.httpHosts: http://localhost:9200,http://127.0.0.2:9200
