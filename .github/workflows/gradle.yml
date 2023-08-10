@@ -1,10 +1,13 @@
-name: Java CI with Gradle (Groovy)
+name: Java CI with Gradle
 
 on:
   push:
     branches: [ master ]
   pull_request:
     branches: [ master ]
+
+env:
+  JWT_GENERATOR_SIGNATURE_SECRET: ${{ secrets.JWT_GENERATOR_SIGNATURE_SECRET }}
 
 permissions:
   contents: read
