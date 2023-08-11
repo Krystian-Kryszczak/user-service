@@ -15,7 +15,7 @@ import java.util.UUID
 
 @MicronautTest
 class UserControllerTest(private val spec: RequestSpecification): StringSpec({
-    "test" {
+    "response body should be test user json" {
         spec
             .`when`().get("/users/{id}", UUID.randomUUID())
             .`as`(User::class.java) shouldBe UserFixtures.testUser
