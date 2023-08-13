@@ -11,6 +11,14 @@ micronaut:
               secret: ${JWT_GENERATOR_SIGNATURE_SECRET}
               base64: true
               jws-algorithm: HS256
+  server:
+    port: 6450
+    cors:
+      enabled: true
+    netty:
+      access-logger:
+        enabled: true
+        log-format: common
 cassandra:
   default:
     advanced:
