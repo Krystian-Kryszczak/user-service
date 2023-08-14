@@ -2,7 +2,7 @@ FROM eclipse-temurin:17-alpine as builder
 
 COPY . .
 
-RUN ./gradlew build -x test
+RUN gradlew build -x test
 
 FROM eclipse-temurin:17-alpine
 
