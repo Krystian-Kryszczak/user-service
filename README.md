@@ -1,6 +1,6 @@
 ## User Microservice
 [![CodeQL](https://github.com/Krystian-Kryszczak/user-service/actions/workflows/codeql.yml/badge.svg)](https://github.com/Krystian-Kryszczak/user-service/actions/workflows/codeql.yml)
-[![Java CI with Gradle](https://github.com/Krystian-Kryszczak/user-service/actions/workflows/gradle.yml/badge.svg)](https://github.com/Krystian-Kryszczak/user-service/actions/workflows/gradle.yml)
+[![Java CI](https://github.com/Krystian-Kryszczak/user-service/actions/workflows/gradle.yml/badge.svg)](https://github.com/Krystian-Kryszczak/user-service/actions/workflows/gradle.yml)
 > This microservice is responsible for user management.
 ##### Programing language: Kotlin
 ##### Used technologies:
