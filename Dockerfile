@@ -1,8 +1,8 @@
-FROM eclipse-temurin:17-alpine as builder
+FROM gradle:8.2.1-jdk17-alpine as builder
 
 COPY . .
 
-RUN ./gradlew build -x test
+RUN gradle build -x test
 
 FROM eclipse-temurin:17-alpine
 
