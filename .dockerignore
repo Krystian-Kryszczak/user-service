@@ -5,7 +5,6 @@ build/
 target/
 out/
 .micronaut/
-.github/
 .idea
 *.iml
 *.ipr
@@ -14,6 +13,3 @@ out/
 .settings
 .classpath
 .factorypath
-.gitignore
-*.md
-gradlew.bat
