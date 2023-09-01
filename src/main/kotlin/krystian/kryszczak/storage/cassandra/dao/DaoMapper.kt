@@ -17,6 +17,8 @@ interface DaoMapper {
     @DaoFactory
     fun friendInvitationDao(@DaoKeyspace keyspace: CqlIdentifier): FriendInvitationDao
 
-    @JvmStatic
-    fun builder(session: CqlSession): MapperBuilder<DaoMapper> = DaoMapperBuilder(session)
+    companion object {
+        @JvmStatic
+        fun builder(session: CqlSession): MapperBuilder<DaoMapper> = DaoMapperBuilder(session)
+    }
 }
