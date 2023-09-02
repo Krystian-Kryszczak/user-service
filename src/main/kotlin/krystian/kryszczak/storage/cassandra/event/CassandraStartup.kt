@@ -13,13 +13,13 @@ import org.slf4j.LoggerFactory
 class CassandraStartup(cqlSession: CqlSession): AbstractCassandraStartup(cqlSession, logger) {
     @EventListener
     override fun onStartupEvent(event: StartupEvent) {
-        createWatchTable()
+        createFriendInvitationTable()
     }
 
-    private fun createWatchTable() = execute(
+    private fun createFriendInvitationTable() = execute(
         getItemTableBase("friend_invitation")
-            .withColumn("from", DataTypes.TIMEUUID)
-            .withColumn("to", DataTypes.TIMEUUID)
+            .withColumn("inviter", DataTypes.TIMEUUID)
+            .withColumn("receiver", DataTypes.TIMEUUID)
             .build()
     )
 

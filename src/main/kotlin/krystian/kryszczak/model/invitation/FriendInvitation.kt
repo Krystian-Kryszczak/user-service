@@ -15,6 +15,6 @@ import java.util.*
 data class FriendInvitation(
     @PartitionKey
     override val id: UUID? = null,
-    val from: UUID? = null,
-    val to: UUID? = null
+    val inviter: UUID? = null,
+    val receiver: UUID? = null
 ): Item(id)
