@@ -3,13 +3,11 @@ package krystian.kryszczak.model.invitation
 import com.datastax.oss.driver.api.mapper.annotations.Entity
 import com.datastax.oss.driver.api.mapper.annotations.PartitionKey
 import com.datastax.oss.driver.api.mapper.annotations.SchemaHint
-import io.micronaut.core.annotation.Introspected
 import io.micronaut.serde.annotation.Serdeable
 import krystian.kryszczak.commons.model.Item
-import java.util.*
+import java.util.UUID
 
 @Entity
-@Introspected
 @Serdeable
 @SchemaHint(targetElement = SchemaHint.TargetElement.TABLE)
 data class FriendInvitation(
