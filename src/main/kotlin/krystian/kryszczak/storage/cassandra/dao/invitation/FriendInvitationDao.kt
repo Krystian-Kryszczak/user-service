@@ -12,8 +12,8 @@ import java.util.*
 
 @Dao
 interface FriendInvitationDao: ItemDao<FriendInvitation> {
-    @Select(customWhereClause = "receiverId = :receiverId", limit = "100", allowFiltering = true)
-    fun findByReceiverId(@CqlName("receiverId") receiverId: UUID): MappedReactiveResultSet<FriendInvitation>
+    @Select(customWhereClause = "receiver = :receiver", limit = "100", allowFiltering = true)
+    fun findByReceiverId(@CqlName("receiver") receiver: UUID): MappedReactiveResultSet<FriendInvitation>
     @Delete(entityClass = [FriendInvitation::class])
     fun deleteById(id: UUID): ReactiveResultSet
     @Delete(entityClass = [FriendInvitation::class], ifExists = true)
