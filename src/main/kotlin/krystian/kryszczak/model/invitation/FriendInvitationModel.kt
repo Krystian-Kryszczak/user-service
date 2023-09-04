@@ -5,8 +5,5 @@ import java.util.UUID
 
 @Serdeable
 data class FriendInvitationModel(val inviter: UUID, val receiver: UUID) {
-    fun mapToInvitation() = FriendInvitation(
-        inviter = inviter,
-        receiver = receiver
-    )
+    fun mapToInvitation() = FriendInvitation(inviter = inviter, receiver = receiver)
 }
