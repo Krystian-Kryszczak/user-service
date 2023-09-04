@@ -4,7 +4,7 @@ import io.micronaut.serde.annotation.Serdeable
 import java.util.UUID
 
 @Serdeable
-data class FriendInvitationModel(val inviter: UUID? = null, val receiver: UUID? = null) {
+data class FriendInvitationModel(val inviter: UUID, val receiver: UUID) {
     fun mapToInvitation() = FriendInvitation(
         inviter = inviter,
         receiver = receiver
