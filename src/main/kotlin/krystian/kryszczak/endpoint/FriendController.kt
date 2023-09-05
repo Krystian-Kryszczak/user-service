@@ -1,11 +1,12 @@
 package krystian.kryszczak.endpoint
 
 import io.micronaut.http.HttpResponse
-import io.micronaut.http.HttpStatus.UNAUTHORIZED
+import io.micronaut.http.HttpStatus.*
 import io.micronaut.http.annotation.*
 import io.micronaut.security.annotation.Secured
 import io.micronaut.security.authentication.Authentication
 import io.micronaut.security.rules.SecurityRule
+import io.reactivex.rxjava3.core.Single
 import krystian.kryszczak.commons.utils.SecurityUtils
 import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.service.friend.FriendService
@@ -14,19 +15,19 @@ import java.util.UUID
 @Secured(SecurityRule.IS_AUTHENTICATED)
 @Controller("/friends")
 class FriendController(private val friendService: FriendService) {
-    @Get("/{?page:3}")
-    fun friendshipList(page: Int?, authentication: Authentication) = useWithExtractedId(authentication) {
-        clientId -> friendService.friendshipList(page ?: 0, clientId)
+    @Get("/{/page:3}")
+    fun friendshipList(@PathVariable(defaultValue = "0") page: Int, authentication: Authentication) = useWithExtractedId(authentication) {
+        clientId -> friendService.friendshipList(page, clientId)
     }
 
     @Post
     fun invite(@Body id: UUID, authentication: Authentication) = useWithExtractedId(authentication) {
-        clientId -> friendService.sendInvitation(FriendInvitationModel(clientId, id))
+        clientId -> friendService.sendInvitation(FriendInvitationModel(clientId, id)).mapToStatus()
     }
 
     @Delete
     fun remove(@Body id: UUID, authentication: Authentication) = useWithExtractedId(authentication) {
-        clientId -> friendService.removeFriend(id, clientId)
+        clientId -> friendService.removeFriend(id, clientId).mapToStatus()
     }
 
     @Get("/invitations")
@@ -34,12 +35,12 @@ class FriendController(private val friendService: FriendService) {
 
     @Post("/invitations")
     fun accept(@Body id: UUID, authentication: Authentication) = useWithExtractedId(authentication) {
-        clientId -> friendService.acceptInvitation(FriendInvitationModel(id, clientId))
+        clientId -> friendService.acceptInvitation(FriendInvitationModel(id, clientId)).mapToStatus()
     }
 
     @Delete("/invitations")
     fun deny(@Body id: UUID, authentication: Authentication) = useWithExtractedId(authentication) {
-        clientId -> friendService.denyInvitation(FriendInvitationModel(id, clientId))
+        clientId -> friendService.denyInvitation(FriendInvitationModel(id, clientId)).mapToStatus()
     }
 
     @Get("/propose")
@@ -53,4 +54,6 @@ class FriendController(private val friendService: FriendService) {
             )
         )
     }
+
+    private fun Single<Boolean>.mapToStatus() = map { if (it) OK else CONFLICT }
 }
