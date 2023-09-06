@@ -1,7 +1,7 @@
 package krystian.kryszczak.endpoint
 
 import com.datastax.oss.driver.api.core.uuid.Uuids
-import fixtures.user.UserFixtures.testUser
+import fixtures.user.testUser
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FreeSpec
