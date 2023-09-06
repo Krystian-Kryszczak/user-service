@@ -17,7 +17,7 @@ import java.util.UUID
 class FriendController(private val friendService: FriendService) {
     @Get("/{/page:3}")
     fun friendshipList(@PathVariable(defaultValue = "0") page: Int, authentication: Authentication) = useWithExtractedId(authentication) {
-        clientId -> friendService.friendshipList(page, clientId)
+        clientId -> friendService.friendshipList(clientId, page)
     }
 
     @Post
