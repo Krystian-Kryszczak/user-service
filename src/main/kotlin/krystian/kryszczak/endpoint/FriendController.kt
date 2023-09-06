@@ -46,6 +46,9 @@ class FriendController(private val friendService: FriendService) {
     @Get("/propose")
     fun propose(authentication: Authentication) = friendService.propose(authentication)
 
+    @Get("/search/{query}")
+    fun search(query: String, authentication: Authentication) = friendService.search(query, authentication)
+
     private inline fun <T> useWithExtractedId(authentication: Authentication, body: (id: UUID) -> T): HttpResponse<T> {
         return HttpResponse.ok(
             body(

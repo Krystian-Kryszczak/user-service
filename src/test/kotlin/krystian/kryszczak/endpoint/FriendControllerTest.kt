@@ -251,6 +251,39 @@ class FriendControllerTest(@Client("/friends") httpClient: Rx3HttpClient, jwtTok
             }
         }
     }
+
+    "response of GET (search) request" - {
+        val endpoint = "/search"
+
+        "should return list of found friends" {
+            val response = client.exchange(
+                HttpRequest.GET<String>("$endpoint/${testUser.name}")
+                    .bearerAuth(accessToken),
+                Argument.listOf(User::class.java)
+            )
+            response.status shouldBe OK
+            response.body().shouldNotBeEmpty()
+        }
+
+        "should throw http client response exception with `Forbidden` message" {
+            shouldThrowWithMessage<HttpClientResponseException> ("Forbidden") {
+                client.exchange(
+                    HttpRequest.GET<String>(endpoint)
+                        .bearerAuth(accessToken),
+                    Argument.listOf(User::class.java)
+                )
+            }
+        }
+
+        "should throw http client response exception with `Unauthorized` message" {
+            shouldThrowWithMessage<HttpClientResponseException> ("Unauthorized") {
+                client.exchange(
+                    HttpRequest.GET<String>("$endpoint/${testUser.name}"),
+                    Argument.listOf(User::class.java)
+                )
+            }
+        }
+    }
 }) {
     @MockBean(FriendService::class)
     fun friendService(): FriendService {
@@ -258,6 +291,7 @@ class FriendControllerTest(@Client("/friends") httpClient: Rx3HttpClient, jwtTok
 
         every { service.propose(any<Authentication>()) } returns Flowable.just(testUser)
         every { service.propose(any<UUID>()) } returns Flowable.just(testUser)
+        every { service.search(any(), any()) } returns Flowable.just(testUser)
         every { service.invitations(any()) } returns Flowable.just(FriendInvitation(Uuids.timeBased(), Uuids.timeBased(), Uuids.timeBased()))
         every { service.friendshipList(any(), any()) } returns Flowable.just(Uuids.timeBased())
         every { service.sendInvitation(any()) } returns Single.just(true)
