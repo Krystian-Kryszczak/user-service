@@ -35,12 +35,24 @@ val secondTestUser = User(
 
 val thirdTestUser = User(
     thirdTestUserId,
-    "Jason",
+    "Jim",
     "Smith",
-    "jason.smith@example.com",
+    "jim.smith@example.com",
     "785 785 785",
     LocalDate.EPOCH.until(LocalDate.of(2003, 7, 25), ChronoUnit.DAYS).toInt(),
     mutableSetOf(secondTestUserId),
+    0,
+    null
+)
+
+val fourthTestUser = User(
+    thirdTestUserId,
+    "Jason",
+    "Smith",
+    "jason.smith@example.com",
+    "885 885 885",
+    LocalDate.EPOCH.until(LocalDate.of(2003, 7, 25), ChronoUnit.DAYS).toInt(),
+    mutableSetOf(),
     0,
     null
 )
