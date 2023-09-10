@@ -1,5 +1,6 @@
 package krystian.kryszczak.service.friend
 
+import com.datastax.dse.driver.api.core.cql.reactive.ReactiveRow
 import io.micronaut.security.authentication.Authentication
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Maybe
@@ -8,11 +9,12 @@ import jakarta.inject.Singleton
 import krystian.kryszczak.commons.model.being.user.User
 import krystian.kryszczak.commons.service.being.user.UserService
 import krystian.kryszczak.commons.utils.SecurityUtils
-import krystian.kryszczak.model.invitation.FriendInvitation
+import krystian.kryszczak.extension.takeRandom
 import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.storage.cassandra.dao.friend.FriendDao
 import krystian.kryszczak.storage.cassandra.dao.invitation.FriendInvitationDao
 import java.util.UUID
+import java.util.stream.Collectors
 
 @Singleton
 class FriendServiceImpl(
@@ -24,59 +26,132 @@ class FriendServiceImpl(
         return propose(SecurityUtils.getClientId(authentication) ?: return Flowable.empty())
     }
 
-    override fun propose(clientId: UUID): Flowable<User> =
-        userService.findById(clientId)
-        .map(User::friends)
-        .flatMapPublisher { friends ->
-            Flowable.fromIterable(friends)
-                .flatMapMaybe(userService::findById)
-                .flatMapIterable(User::friends)
-                .skipWhile(friends::contains)
-                .flatMapMaybe(userService::findById)
-        }
+    override fun propose(clientId: UUID) =
+        findFriendsById(clientId)
+            .map(Set<UUID>::toMutableList)
+            .map { it.takeRandom(4) }
+            .flatMapPublisher { friends ->
+                findFriendsByIdInIds(friends)
+                    .flatMapIterable { it }
+                    .skipWhile(friends::contains)
+            }.collect(Collectors.toList())
+            .map { it.takeRandom(8) }
+            .flatMapPublisher(this::findByIdInIds)
+            .switchIfEmpty(
+                userService.findById(clientId)
+                    .filter { it.lastname != null }
+                    .flatMapPublisher { friendDao.searchByLastname(it.lastname!!, 4) }
+            )
 
-    override fun friendshipList(page: Int, clientId: UUID) =
-        Maybe.fromPublisher(friendDao.findById(clientId))
-            .map(User::friends)
-            .flatMapPublisher { Flowable.fromIterable(it) }
+    override fun search(query: String, authentication: Authentication?) =
+        Single.just(query.split(" ").filter(String::isNotBlank))
+            .filter { it.size > 1 }
+            .flatMapPublisher {
+                userService.search(it.first(), it.last())
+            }
 
-    override fun invitations(id: UUID): Flowable<FriendInvitation> = Flowable.fromPublisher(friendInvitationDao.findByReceiverId(id))
+    override fun friendshipList(clientId: UUID, page: Int) = findFriendsById(clientId)
+        .flatMapPublisher { Flowable.fromIterable(it) }
 
-    override fun sendInvitation(invitation: FriendInvitationModel) {
-        Single.fromPublisher(friendInvitationDao.save(invitation.mapToInvitation()))
-            .subscribe()
-    }
+    override fun findByIdInIds(ids: List<UUID>) = Flowable.fromPublisher(friendDao.findByIdInIds(ids))
 
-    override fun acceptInvitation(invitation: FriendInvitationModel) {
-        Single.just(invitation)
-            .filter { it.inviter != null && it.receiver != null }
-            .flatMap {
-                Maybe.fromPublisher(friendInvitationDao.deleteIfExist(invitation.mapToInvitation()))
-            }.filter { it }
-            .doOnSuccess {
-                friendDao.addFriend(invitation.inviter!!, invitation.receiver!!)
-                friendDao.addFriend(invitation.receiver, invitation.inviter)
-            }.subscribe()
-    }
+    override fun findFriendsById(id: UUID) = Maybe.fromPublisher(friendDao.findFriendsById(id))
+        .map(User::friends).map(MutableSet<UUID>::toSet)
 
-    override fun acceptInvitation(id: UUID) {
-        friendInvitationDao.findById(id)
-    }
+    override fun findFriendsByIdInIds(ids: List<UUID>) = Flowable.fromPublisher(friendDao.findFriendsByIdInIds(ids))
+        .map(User::friends).map(MutableSet<UUID>::toSet)
 
-    override fun denyInvitation(invitation: FriendInvitationModel) {
-        Single.fromPublisher(friendInvitationDao.deleteIfExist(invitation.mapToInvitation()))
-            .subscribe()
-    }
+    override fun invitations(id: UUID) = Flowable.fromPublisher(friendInvitationDao.findByReceiver(id))
 
-    override fun denyInvitation(id: UUID) {
-        Single.fromPublisher(friendInvitationDao.deleteByIdIfExists(id))
-            .subscribe()
-    }
+    override fun sendInvitation(invitation: FriendInvitationModel) =
+        Flowable.fromPublisher(friendDao.findByIdInIds(listOf(invitation.inviter, invitation.receiver)))
+            .filter {
+                (it.id == invitation.inviter && !it.friends.contains(invitation.receiver)) ||
+                (it.id == invitation.receiver && !it.friends.contains(invitation.inviter))
+            }
+            .collect(Collectors.toList())
+            .filter { it.size == 2 }
+            .flatMapPublisher {
+                Flowable.fromPublisher(friendInvitationDao.save(invitation.mapToInvitation()))
+                    .map(ReactiveRow::wasApplied)
+                    .defaultIfEmpty(true)
+            }
+            .reduce(Boolean::and)
+            .defaultIfEmpty(false)
+
+    override fun acceptInvitation(invitation: FriendInvitationModel) =
+        Flowable.fromPublisher(friendInvitationDao.findByReceiver(invitation.receiver))
+            .filter { it.inviter == invitation.inviter }
+            .flatMapMaybe {
+                Flowable.zip(
+                    Flowable.fromPublisher(friendDao.addFriends(invitation.inviter, setOf(invitation.receiver)))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true),
+                    Flowable.fromPublisher(friendDao.addFriends(invitation.receiver, setOf(invitation.inviter)))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true),
+                    Flowable.fromPublisher(friendInvitationDao.deleteById(it.id!!))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true)
+                ) { t1, t2, t3 -> t1 && t2 && t3 }
+                .reduce(Boolean::and)
+            }.reduce(Boolean::and)
+            .defaultIfEmpty(false)
+
+    override fun acceptInvitation(id: UUID) =
+        Flowable.fromPublisher(friendInvitationDao.findById(id))
+            .flatMapMaybe {
+                Flowable.zip(
+                    Flowable.fromPublisher(friendDao.addFriends(it.inviter!!, setOf(it.receiver!!)))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true),
+                    Flowable.fromPublisher(friendDao.addFriends(it.receiver, setOf(it.inviter)))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true),
+                    Flowable.fromPublisher(friendInvitationDao.deleteById(id))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true)
+                ) { t1, t2, t3 -> t1 && t2 && t3 }
+                .reduce(Boolean::and)
+            }.reduce(Boolean::and)
+            .defaultIfEmpty(false)
+
+    override fun denyInvitation(invitation: FriendInvitationModel) =
+        Flowable.fromPublisher(friendInvitationDao.findByReceiver(invitation.receiver))
+            .filter { it.inviter == invitation.inviter }
+            .flatMapMaybe {
+                Flowable.fromPublisher(friendInvitationDao.deleteById(it.id!!))
+                    .map(ReactiveRow::wasApplied)
+                    .defaultIfEmpty(true)
+                    .reduce(Boolean::and)
+            }.reduce(Boolean::and)
+            .defaultIfEmpty(false)
+
+    override fun denyInvitation(id: UUID) =
+        Flowable.fromPublisher(friendInvitationDao.findById(id))
+            .flatMapMaybe {
+                Flowable.fromPublisher(friendInvitationDao.deleteById(id))
+                    .map(ReactiveRow::wasApplied)
+                    .defaultIfEmpty(true)
+                    .reduce(Boolean::and)
+            }.reduce(Boolean::and)
+            .defaultIfEmpty(false)
 
     override fun removeFriend(id: UUID, friendId: UUID) =
-        Single.fromCallable {
-            friendDao.removeFriend(id, friendId)
-            friendDao.removeFriend(friendId, id)
-        }.map { true }
-        .onErrorReturnItem(false)
+        Flowable.fromPublisher(friendDao.findByIdInIds(listOf(id, friendId)))
+            .filter { (it.id == id && it.friends.contains(friendId)) || (it.id == friendId && it.friends.contains(id)) }
+            .collect(Collectors.toList())
+            .filter { it.size == 2 }
+            .flatMapPublisher {
+                Flowable.zip(
+                    Flowable.fromPublisher(friendDao.removeFriends(id, setOf(friendId)))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true),
+                    Flowable.fromPublisher(friendDao.removeFriends(friendId, setOf(id)))
+                        .map(ReactiveRow::wasApplied)
+                        .defaultIfEmpty(true)
+                ) { t1, t2 -> t1 && t2 }
+            }
+            .reduce(Boolean::and)
+            .defaultIfEmpty(false)
 }
