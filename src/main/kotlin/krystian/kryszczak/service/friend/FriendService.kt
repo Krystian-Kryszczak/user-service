@@ -14,7 +14,6 @@ interface FriendService {
     fun propose(clientId: UUID): Flowable<User>
     fun search(query: String, authentication: Authentication? = null): Flowable<User>
     fun friendshipList(clientId: UUID, page: Int = 0): Flowable<UUID>
-    fun findByIdInIds(ids: List<UUID>): Flowable<User>
     fun findFriendsById(id: UUID): Maybe<Set<UUID>>
     fun findFriendsByIdInIds(ids: List<UUID>): Flowable<Set<UUID>>
     fun invitations(id: UUID): Flowable<FriendInvitation>

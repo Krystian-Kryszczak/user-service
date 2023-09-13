@@ -9,7 +9,7 @@ import jakarta.inject.Singleton
 import krystian.kryszczak.commons.model.being.user.User
 import krystian.kryszczak.commons.service.being.user.UserService
 import krystian.kryszczak.commons.utils.SecurityUtils
-import krystian.kryszczak.extension.takeRandom
+import krystian.kryszczak.commons.extenstion.collection.takeRandom
 import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.storage.cassandra.dao.friend.FriendDao
 import krystian.kryszczak.storage.cassandra.dao.invitation.FriendInvitationDao
@@ -36,7 +36,7 @@ class FriendServiceImpl(
                     .skipWhile(friends::contains)
             }.collect(Collectors.toList())
             .map { it.takeRandom(8) }
-            .flatMapPublisher(this::findByIdInIds)
+            .flatMapPublisher(userService::findByIdInIds)
             .switchIfEmpty(
                 userService.findById(clientId)
                     .filter { it.lastname != null }
@@ -52,8 +52,6 @@ class FriendServiceImpl(
 
     override fun friendshipList(clientId: UUID, page: Int) = findFriendsById(clientId)
         .flatMapPublisher { Flowable.fromIterable(it) }
-
-    override fun findByIdInIds(ids: List<UUID>) = Flowable.fromPublisher(friendDao.findByIdInIds(ids))
 
     override fun findFriendsById(id: UUID) = Maybe.fromPublisher(friendDao.findFriendsById(id))
         .map(User::friends).map(MutableSet<UUID>::toSet)
