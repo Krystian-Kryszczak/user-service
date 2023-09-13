@@ -3,7 +3,6 @@ package krystian.kryszczak.service.friend
 import com.datastax.oss.driver.api.core.CqlSession
 import com.datastax.oss.driver.api.core.uuid.Uuids
 import com.datastax.oss.driver.api.querybuilder.QueryBuilder.*
-import fixtures.user.*
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.core.spec.style.FreeSpec
 import io.kotest.matchers.collections.shouldBeEmpty
@@ -14,6 +13,7 @@ import io.kotest.matchers.shouldBe
 import io.micronaut.security.authentication.Authentication
 import io.micronaut.test.extensions.kotest5.annotation.MicronautTest
 import io.reactivex.rxjava3.core.*
+import krystian.kryszczak.commons.testing.fixtures.*
 import krystian.kryszczak.model.invitation.FriendInvitation
 import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.storage.cassandra.dao.friend.FriendDao
