@@ -1,7 +1,6 @@
 package krystian.kryszczak.endpoint
 
 import com.datastax.oss.driver.api.core.uuid.Uuids
-import fixtures.user.testUser
 import io.kotest.assertions.throwables.shouldThrowExactly
 import io.kotest.assertions.throwables.shouldThrowWithMessage
 import io.kotest.core.spec.style.FreeSpec
@@ -22,6 +21,7 @@ import io.mockk.mockk
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import krystian.kryszczak.commons.model.being.user.User
+import krystian.kryszczak.commons.testing.fixtures.testUser
 import krystian.kryszczak.model.invitation.FriendInvitation
 import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.service.friend.FriendService
