@@ -9,8 +9,6 @@ import java.util.UUID
 
 @Dao
 interface FriendDao: UserDao {
-    @Select(limit = ":l")
-    fun find(@CqlName("l") l: Int): MappedReactiveResultSet<User>
     @Select(customWhereClause = "id = :id")
     fun findFriendsById(@CqlName("id") id: UUID): MappedReactiveResultSet<User>
     @Select(customWhereClause = "id IN :ids")
