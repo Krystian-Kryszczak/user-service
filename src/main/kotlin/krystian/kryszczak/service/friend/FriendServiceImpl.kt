@@ -41,7 +41,8 @@ class FriendServiceImpl(
                 userService.findById(clientId)
                     .filter { it.lastname != null }
                     .flatMapPublisher { friendDao.searchByLastname(it.lastname!!, 4) }
-            )
+                    .skipWhile { it.id == clientId }
+            ).switchIfEmpty { Flowable.fromPublisher(friendDao.find(8)) }
 
     override fun search(query: String, authentication: Authentication?) =
         Single.just(query.split(" ").filter(String::isNotBlank))
