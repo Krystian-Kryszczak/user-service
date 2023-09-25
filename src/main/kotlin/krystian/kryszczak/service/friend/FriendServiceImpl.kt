@@ -17,7 +17,7 @@ import java.util.UUID
 import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
 
-const val TIMEOUT_SECONDS = 8L
+private const val TIMEOUT_SECONDS = 8L
 
 @Singleton
 class FriendServiceImpl(
@@ -25,9 +25,9 @@ class FriendServiceImpl(
     private val friendDao: FriendDao,
     private val friendInvitationDao: FriendInvitationDao
 ): FriendService {
-    private fun <T : Any> Flowable<T>.timeout() = this.timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Flowable.empty())
-    private fun <T : Any> Maybe<T>.timeout() = this.timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Maybe.empty())
-    private fun Single<Boolean>.timeout() = this.timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Single.just(false))
+    private fun <T : Any> Flowable<T>.timeout() = timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Flowable.empty())
+    private fun <T : Any> Maybe<T>.timeout() = timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Maybe.empty())
+    private fun Single<Boolean>.timeout() = timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Single.just(false))
 
     override fun propose(authentication: Authentication): Flowable<User> {
         return propose(SecurityUtils.getClientId(authentication) ?: return Flowable.empty())
@@ -49,10 +49,13 @@ class FriendServiceImpl(
                     .filter { it.lastname != null }
                     .flatMapPublisher { friendDao.searchByLastname(it.lastname!!, 4) }
                     .skipWhile { it.id == clientId }
-            ).switchIfEmpty {
-                Flowable.fromPublisher(friendDao.find(8))
-                    .skipWhile { it.id == clientId }
-            }.timeout()
+                    .switchIfEmpty(
+                        Flowable.fromCompletionStage(friendDao.findAll(8))
+                            .flatMapIterable { paging ->
+                                paging.currentPage().filter { it.id != clientId }
+                            }
+                    )
+            ).timeout()
 
     override fun search(query: String, authentication: Authentication?) =
         Single.just(query.split(" ").filter(String::isNotBlank))
