@@ -14,7 +14,10 @@ import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.storage.cassandra.dao.friend.FriendDao
 import krystian.kryszczak.storage.cassandra.dao.invitation.FriendInvitationDao
 import java.util.UUID
+import java.util.concurrent.TimeUnit
 import java.util.stream.Collectors
+
+const val TIMEOUT_SECONDS = 8L
 
 @Singleton
 class FriendServiceImpl(
@@ -22,6 +25,10 @@ class FriendServiceImpl(
     private val friendDao: FriendDao,
     private val friendInvitationDao: FriendInvitationDao
 ): FriendService {
+    private fun <T : Any> Flowable<T>.timeout() = this.timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Flowable.empty())
+    private fun <T : Any> Maybe<T>.timeout() = this.timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Maybe.empty())
+    private fun Single<Boolean>.timeout() = this.timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Single.just(false))
+
     override fun propose(authentication: Authentication): Flowable<User> {
         return propose(SecurityUtils.getClientId(authentication) ?: return Flowable.empty())
     }
@@ -42,25 +49,28 @@ class FriendServiceImpl(
                     .filter { it.lastname != null }
                     .flatMapPublisher { friendDao.searchByLastname(it.lastname!!, 4) }
                     .skipWhile { it.id == clientId }
-            ).switchIfEmpty { Flowable.fromPublisher(friendDao.find(8)) }
+            ).switchIfEmpty {
+                Flowable.fromPublisher(friendDao.find(8))
+                    .skipWhile { it.id == clientId }
+            }.timeout()
 
     override fun search(query: String, authentication: Authentication?) =
         Single.just(query.split(" ").filter(String::isNotBlank))
             .filter { it.size > 1 }
             .flatMapPublisher {
                 userService.search(it.first(), it.last())
-            }
+            }.timeout()
 
     override fun friendshipList(clientId: UUID, page: Int) = findFriendsById(clientId)
         .flatMapPublisher { Flowable.fromIterable(it) }
 
     override fun findFriendsById(id: UUID) = Maybe.fromPublisher(friendDao.findFriendsById(id))
-        .map(User::friends).map(MutableSet<UUID>::toSet)
+        .map(User::friends).map(MutableSet<UUID>::toSet).timeout()
 
     override fun findFriendsByIdInIds(ids: List<UUID>) = Flowable.fromPublisher(friendDao.findFriendsByIdInIds(ids))
-        .map(User::friends).map(MutableSet<UUID>::toSet)
+        .map(User::friends).map(MutableSet<UUID>::toSet).timeout()
 
-    override fun invitations(id: UUID) = Flowable.fromPublisher(friendInvitationDao.findByReceiver(id))
+    override fun invitations(id: UUID) = Flowable.fromPublisher(friendInvitationDao.findByReceiver(id)).timeout()
 
     override fun sendInvitation(invitation: FriendInvitationModel) =
         Flowable.fromPublisher(friendDao.findByIdInIds(listOf(invitation.inviter, invitation.receiver)))
@@ -77,6 +87,7 @@ class FriendServiceImpl(
             }
             .reduce(Boolean::and)
             .defaultIfEmpty(false)
+            .timeout()
 
     override fun acceptInvitation(invitation: FriendInvitationModel) =
         Flowable.fromPublisher(friendInvitationDao.findByReceiver(invitation.receiver))
@@ -96,6 +107,7 @@ class FriendServiceImpl(
                 .reduce(Boolean::and)
             }.reduce(Boolean::and)
             .defaultIfEmpty(false)
+            .timeout()
 
     override fun acceptInvitation(id: UUID) =
         Flowable.fromPublisher(friendInvitationDao.findById(id))
@@ -114,6 +126,7 @@ class FriendServiceImpl(
                 .reduce(Boolean::and)
             }.reduce(Boolean::and)
             .defaultIfEmpty(false)
+            .timeout()
 
     override fun denyInvitation(invitation: FriendInvitationModel) =
         Flowable.fromPublisher(friendInvitationDao.findByReceiver(invitation.receiver))
@@ -125,6 +138,7 @@ class FriendServiceImpl(
                     .reduce(Boolean::and)
             }.reduce(Boolean::and)
             .defaultIfEmpty(false)
+            .timeout()
 
     override fun denyInvitation(id: UUID) =
         Flowable.fromPublisher(friendInvitationDao.findById(id))
@@ -135,6 +149,7 @@ class FriendServiceImpl(
                     .reduce(Boolean::and)
             }.reduce(Boolean::and)
             .defaultIfEmpty(false)
+            .timeout()
 
     override fun removeFriend(id: UUID, friendId: UUID) =
         Flowable.fromPublisher(friendDao.findByIdInIds(listOf(id, friendId)))
@@ -153,4 +168,5 @@ class FriendServiceImpl(
             }
             .reduce(Boolean::and)
             .defaultIfEmpty(false)
+            .timeout()
 }
