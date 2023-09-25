@@ -47,14 +47,16 @@ class FriendServiceImpl(
             .switchIfEmpty(
                 userService.findById(clientId)
                     .filter { it.lastname != null }
-                    .flatMapPublisher { friendDao.searchByLastname(it.lastname!!, 4) }
-                    .skipWhile { it.id == clientId }
-                    .switchIfEmpty(
-                        Flowable.fromCompletionStage(friendDao.findAll(8))
-                            .flatMapIterable { paging ->
-                                paging.currentPage().filter { it.id != clientId }
-                            }
-                    )
+                    .flatMapPublisher { user ->
+                        Flowable.fromPublisher(friendDao.searchByLastname(user.lastname!!, 8))
+                            .skipWhile { it.id == clientId }
+                            .switchIfEmpty(
+                                Flowable.fromCompletionStage(friendDao.findAll(8))
+                                    .flatMapIterable { paging ->
+                                        paging.currentPage().filter { it.id != clientId }
+                                    }
+                            )
+                    }
             ).timeout()
 
     override fun search(query: String, authentication: Authentication?) =
