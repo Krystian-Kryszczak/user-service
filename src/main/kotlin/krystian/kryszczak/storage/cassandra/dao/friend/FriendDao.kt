@@ -9,10 +9,6 @@ import java.util.UUID
 
 @Dao
 interface FriendDao: UserDao {
-    @Select(customWhereClause = "id = :id")
-    fun findFriendsById(@CqlName("id") id: UUID): MappedReactiveResultSet<User>
-    @Select(customWhereClause = "id IN :ids")
-    fun findFriendsByIdInIds(@CqlName("ids") ids: List<UUID>): MappedReactiveResultSet<User>
     @Select(customWhereClause = "lastname LIKE :lastname", limit = ":l")
     fun searchByLastname(@CqlName("lastname") lastname: String, @CqlName("l") limit: Int): MappedReactiveResultSet<User>
     @Query("UPDATE user SET friends = friends + :friendsIds WHERE id = :id;")
