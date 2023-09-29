@@ -8,7 +8,7 @@ plugins {
     id("io.micronaut.aot") version "4.0.2"
 }
 
-version = "0.2.0"
+version = "0.2.5"
 group = "krystian.kryszczak"
 
 repositories {
