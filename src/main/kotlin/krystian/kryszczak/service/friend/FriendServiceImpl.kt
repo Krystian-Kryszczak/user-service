@@ -26,7 +26,6 @@ class FriendServiceImpl(
     private val friendInvitationDao: FriendInvitationDao
 ): FriendService {
     private fun <T : Any> Flowable<T>.timeout() = timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Flowable.empty())
-    private fun <T : Any> Maybe<T>.timeout() = timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Maybe.empty())
     private fun Single<Boolean>.timeout() = timeout(TIMEOUT_SECONDS, TimeUnit.SECONDS, Single.just(false))
 
     override fun propose(authentication: Authentication): Flowable<User> {
@@ -34,11 +33,11 @@ class FriendServiceImpl(
     }
 
     override fun propose(clientId: UUID) =
-        findFriendsById(clientId)
+        userService.findFriendsById(clientId)
             .map(Set<UUID>::toMutableList)
             .map { it.takeRandom(4) }
             .flatMapPublisher { friends ->
-                findFriendsByIdInIds(friends)
+                userService.findFriendsByIdInIds(friends)
                     .flatMapIterable { it }
                     .skipWhile(friends::contains)
             }.collect(Collectors.toList())
@@ -66,14 +65,8 @@ class FriendServiceImpl(
                 userService.search(it.first(), it.last())
             }.timeout()
 
-    override fun friendshipList(clientId: UUID, page: Int) = findFriendsById(clientId)
+    override fun friendshipList(clientId: UUID, page: Int) = userService.findFriendsById(clientId)
         .flatMapPublisher { Flowable.fromIterable(it) }
-
-    override fun findFriendsById(id: UUID) = Maybe.fromPublisher(friendDao.findFriendsById(id))
-        .map(User::friends).map(MutableSet<UUID>::toSet).timeout()
-
-    override fun findFriendsByIdInIds(ids: List<UUID>) = Flowable.fromPublisher(friendDao.findFriendsByIdInIds(ids))
-        .map(User::friends).map(MutableSet<UUID>::toSet).timeout()
 
     override fun invitations(id: UUID) = Flowable.fromPublisher(friendInvitationDao.findByReceiver(id)).timeout()
 
