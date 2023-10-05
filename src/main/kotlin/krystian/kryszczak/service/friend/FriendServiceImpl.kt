@@ -3,7 +3,6 @@ package krystian.kryszczak.service.friend
 import com.datastax.dse.driver.api.core.cql.reactive.ReactiveRow
 import io.micronaut.security.authentication.Authentication
 import io.reactivex.rxjava3.core.Flowable
-import io.reactivex.rxjava3.core.Maybe
 import io.reactivex.rxjava3.core.Single
 import jakarta.inject.Singleton
 import krystian.kryszczak.commons.model.being.user.User
@@ -37,26 +36,31 @@ class FriendServiceImpl(
             .map(Set<UUID>::toMutableList)
             .map { it.takeRandom(4) }
             .flatMapPublisher { friends ->
-                userService.findFriendsByIdInIds(friends)
-                    .flatMapIterable { it }
-                    .skipWhile(friends::contains)
+                friends.findFriendsOfFriendsWithoutClientFriendsAndClient(clientId)
             }.collect(Collectors.toList())
             .map { it.takeRandom(8) }
             .flatMapPublisher(userService::findByIdInIds)
             .switchIfEmpty(
                 userService.findById(clientId)
                     .filter { it.lastname != null }
-                    .flatMapPublisher { user ->
-                        Flowable.fromPublisher(friendDao.searchByLastname(user.lastname!!, 8))
+                    .flatMapPublisher { clientUser ->
+                        Flowable.fromPublisher(friendDao.searchByLastname(clientUser.lastname!!, 8))
                             .skipWhile { it.id == clientId }
                             .switchIfEmpty(
                                 Flowable.fromCompletionStage(friendDao.findAll(8))
                                     .flatMapIterable { paging ->
-                                        paging.currentPage().filter { it.id != clientId }
+                                        paging.currentPage()
+                                            .filterNot { clientUser.friends.contains(it.id) || it.id == clientId }
                                     }
                             )
                     }
             ).timeout()
+
+    private fun List<UUID>.findFriendsOfFriendsWithoutClientFriendsAndClient(clientId: UUID) =
+        userService.findFriendsByIdInIds(this)
+            .flatMapIterable { it }
+            .skipWhile(this::contains)
+            .skipWhile { it == clientId }
 
     override fun search(query: String, authentication: Authentication?) =
         Single.just(query.split(" ").filter(String::isNotBlank))
