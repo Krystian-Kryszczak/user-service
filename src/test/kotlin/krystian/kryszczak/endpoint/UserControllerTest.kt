@@ -29,8 +29,8 @@ class UserControllerTest(@Client("/users") httpClient: HttpClient, jwtTokenGener
     val client = httpClient.toBlocking()
     val accessToken = jwtTokenGenerator.generateToken(
         Authentication.build(
-            testUser.email,
-            mapOf("id" to testUser.id!!)
+            johnSmithUser.email,
+            mapOf("id" to johnSmithUser.id!!)
         ),
         3600
     ).orElseThrow()
@@ -43,7 +43,7 @@ class UserControllerTest(@Client("/users") httpClient: HttpClient, jwtTokenGener
                 User::class.java
             )
             response.status shouldBe HttpStatus.OK
-            response.body() shouldBe testUser
+            response.body() shouldBe johnSmithUser
         }
 
         "should return list of test users" {
@@ -53,7 +53,7 @@ class UserControllerTest(@Client("/users") httpClient: HttpClient, jwtTokenGener
                 Argument.listOf(User::class.java)
             )
             response.status shouldBe HttpStatus.OK
-            response.body() shouldBe List(4) {testUser}
+            response.body() shouldBe List(4) {johnSmithUser}
         }
 
         "should throw http client response exception with `Forbidden` message" {
@@ -80,8 +80,8 @@ class UserControllerTest(@Client("/users") httpClient: HttpClient, jwtTokenGener
     fun userService(): UserService {
         val userService = mockk<UserService>()
 
-        every { userService.findById(any()) } returns Maybe.just(testUser)
-        every { userService.findByIdInIds(any()) } returns Flowable.fromIterable(List(4) {testUser})
+        every { userService.findById(any()) } returns Maybe.just(johnSmithUser)
+        every { userService.findByIdInIds(any()) } returns Flowable.fromIterable(List(4) {johnSmithUser})
 
         return userService
     }

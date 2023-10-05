@@ -21,7 +21,7 @@ import io.mockk.mockk
 import io.reactivex.rxjava3.core.Flowable
 import io.reactivex.rxjava3.core.Single
 import krystian.kryszczak.commons.model.being.user.User
-import krystian.kryszczak.commons.testing.fixtures.testUser
+import krystian.kryszczak.commons.testing.fixtures.johnSmithUser
 import krystian.kryszczak.model.invitation.FriendInvitation
 import krystian.kryszczak.model.invitation.FriendInvitationModel
 import krystian.kryszczak.service.friend.FriendService
@@ -33,8 +33,8 @@ class FriendControllerTest(@Client("/friends") httpClient: Rx3HttpClient, jwtTok
     val client = httpClient.toBlocking()
     val accessToken = jwtTokenGenerator.generateToken(
         Authentication.build(
-            testUser.email,
-            mapOf("id" to testUser.id!!)
+            johnSmithUser.email,
+            mapOf("id" to johnSmithUser.id!!)
         ),
         3600
     ).orElseThrow()
@@ -257,7 +257,7 @@ class FriendControllerTest(@Client("/friends") httpClient: Rx3HttpClient, jwtTok
 
         "should return list of found friends" {
             val response = client.exchange(
-                HttpRequest.GET<String>("$endpoint/${testUser.name}")
+                HttpRequest.GET<String>("$endpoint/${johnSmithUser.name}")
                     .bearerAuth(accessToken),
                 Argument.listOf(User::class.java)
             )
@@ -278,7 +278,7 @@ class FriendControllerTest(@Client("/friends") httpClient: Rx3HttpClient, jwtTok
         "should throw http client response exception with `Unauthorized` message" {
             shouldThrowWithMessage<HttpClientResponseException> ("Unauthorized") {
                 client.exchange(
-                    HttpRequest.GET<String>("$endpoint/${testUser.name}"),
+                    HttpRequest.GET<String>("$endpoint/${johnSmithUser.name}"),
                     Argument.listOf(User::class.java)
                 )
             }
@@ -289,9 +289,9 @@ class FriendControllerTest(@Client("/friends") httpClient: Rx3HttpClient, jwtTok
     fun friendService(): FriendService {
         val service = mockk<FriendService>()
 
-        every { service.propose(any<Authentication>()) } returns Flowable.just(testUser)
-        every { service.propose(any<UUID>()) } returns Flowable.just(testUser)
-        every { service.search(any(), any()) } returns Flowable.just(testUser)
+        every { service.propose(any<Authentication>()) } returns Flowable.just(johnSmithUser)
+        every { service.propose(any<UUID>()) } returns Flowable.just(johnSmithUser)
+        every { service.search(any(), any()) } returns Flowable.just(johnSmithUser)
         every { service.invitations(any()) } returns Flowable.just(FriendInvitation(Uuids.timeBased(), Uuids.timeBased(), Uuids.timeBased()))
         every { service.friendshipList(any(), any()) } returns Flowable.just(Uuids.timeBased())
         every { service.sendInvitation(any()) } returns Single.just(true)
